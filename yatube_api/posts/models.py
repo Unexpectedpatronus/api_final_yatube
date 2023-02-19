@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 
 User = get_user_model()
@@ -7,11 +8,11 @@ POST_STR_LENGTH: int = 15
 
 class Group(models.Model):
     title = models.CharField(
+        'Название группы',
         max_length=200,
-        verbose_name='Название группы'
     )
     slug = models.SlugField(unique=True)
-    description = models.TextField(verbose_name='Описание')
+    description = models.TextField('Описание')
 
     class Meta:
         verbose_name = 'Группа'
@@ -22,9 +23,9 @@ class Group(models.Model):
 
 
 class Post(models.Model):
-    text = models.TextField(verbose_name='Текст поста')
+    text = models.TextField('Текст поста')
     pub_date = models.DateTimeField(
-        verbose_name='Дата публикации',
+        'Дата публикации',
         auto_now_add=True
     )
     author = models.ForeignKey(
@@ -34,7 +35,7 @@ class Post(models.Model):
         verbose_name='Автор'
     )
     image = models.ImageField(
-        verbose_name='Картинка',
+        'Картинка',
         upload_to='posts/',
         blank=True
     )
@@ -67,9 +68,9 @@ class Comment(models.Model):
         verbose_name='Пост',
         related_name='comments'
     )
-    text = models.TextField(verbose_name='Текст комментария')
+    text = models.TextField('Текст комментария')
     created = models.DateTimeField(
-        verbose_name='Дата добавления',
+        'Дата добавления',
         auto_now_add=True,
         db_index=True
     )
@@ -102,8 +103,14 @@ class Follow(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'following'],
-                name='unique_user_following')
+                name='unique_user_following'
+            )
         ]
+
+    def clean(self):
+        if self.user == self.following:
+            raise ValidationError('Нельзя подписаться на самого себя!')
+        super(Follow, self).clean()
 
     def __str__(self):
         return f'{self.user} <-> {self.following}'
